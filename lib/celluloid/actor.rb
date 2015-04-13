@@ -317,10 +317,10 @@ module Celluloid
     # Handle any exceptions that occur within a running actor
     def handle_crash(exception)
       # TODO: add meta info
-      Logger.crash("Actor crashed!", exception)
+      log_crash("Actor crashed!", exception)
       shutdown ExitEvent.new(behavior_proxy, exception)
     rescue => ex
-      Logger.crash("ERROR HANDLER CRASHED!", ex)
+      log_crash("ERROR HANDLER CRASHED!", ex)
     end
 
     # Handle cleaning up this actor after it exits
@@ -347,7 +347,7 @@ module Celluloid
       end
     rescue => ex
       # TODO: metadata
-      Logger.crash("CLEANUP CRASHED!", ex)
+      log_crash("CLEANUP CRASHED!", ex)
     end
 
     # Run a method inside a task unless it's exclusive
@@ -359,6 +359,10 @@ module Celluloid
           yield
         end
       }.resume
+    end
+
+    def log_crash(string, exception)
+      Logger.actor_crash(string, exception, behavior_proxy)
     end
   end
 end

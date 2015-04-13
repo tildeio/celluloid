@@ -55,7 +55,7 @@ module Celluloid
     end
 
     # Handle a crash
-    def crash(string, exception)
+    def actor_crash(string, exception, actor)
       if Celluloid.log_actor_crashes
         string << "\n" << format_exception(exception)
         error string
@@ -63,7 +63,22 @@ module Celluloid
 
       @exception_handlers.each do |handler|
         begin
-          handler.call(exception)
+          handler.call(exception, string, actor)
+        rescue => ex
+          error "EXCEPTION HANDLER CRASHED:\n" << format_exception(ex)
+        end
+      end
+    end
+
+    def crash(string, actor, exception)
+      if Celluloid.log_actor_crashes
+        string << "\n" << format_exception(exception)
+        error string
+      end
+
+      @exception_handlers.each do |handler|
+        begin
+          handler.call(exception, string, nil)
         rescue => ex
           error "EXCEPTION HANDLER CRASHED:\n" << format_exception(ex)
         end
@@ -79,7 +94,7 @@ module Celluloid
     # Define an exception handler
     # NOTE: These should be defined at application start time
     def exception_handler(&block)
-      @exception_handlers << block
+      @exception_handlers << block if block_given?
       nil
     end
 

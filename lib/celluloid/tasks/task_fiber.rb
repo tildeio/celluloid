@@ -29,7 +29,7 @@ module Celluloid
     end
 
     # Terminate this task
-    def terminate
+    def terminate(exit_event)
       super
     rescue FiberError
       # If we're getting this the task should already be dead
