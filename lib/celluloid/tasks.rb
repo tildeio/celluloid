@@ -10,7 +10,27 @@ module Celluloid
 
   # Tasks are interruptable/resumable execution contexts used to run methods
   class Task
-    class TerminatedError < ResumableError; end # kill a running task after terminate
+    class TerminatedError < ResumableError # kill a running task after terminate
+      def initialize(exit_event)
+        super("task was terminated; #{explain(exit_event)}")
+        @exit_event = exit_event
+      end
+      attr_reader :exit_event
+
+      def cause
+        if @exit_event && @exit_event.reason.is_a?(Exception)
+          @exit_event.reason
+        end
+      end
+
+      def explain(exit_event)
+        if exit_event
+          "actor=#{exit_event.actor.inspect}; reason=#{exit_event.reason.inspect}"
+        else
+          "normal shutdown"
+        end
+      end
+    end
 
     class TimeoutError < ResumableError; end # kill a running task after timeout
 
@@ -116,14 +136,14 @@ module Celluloid
     end
 
     # Terminate this task
-    def terminate
+    def terminate(exit_event)
       raise "Cannot terminate an exclusive task" if exclusive?
 
       if running?
         Logger.with_backtrace(backtrace) do |logger|
           logger.debug "Terminating task: type=#{@type.inspect}, meta=#{@meta.inspect}, status=#{@status.inspect}"
         end
-        exception = Task::TerminatedError.new("task was terminated")
+        exception = Task::TerminatedError.new(exit_event)
         exception.set_backtrace(caller)
         resume exception
       else
